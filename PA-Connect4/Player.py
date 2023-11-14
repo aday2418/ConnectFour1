@@ -3,6 +3,8 @@
 #  - pass command line param string to each AI
 
 import numpy as np
+import math
+import random
 
 
 class AIPlayer:
@@ -52,11 +54,55 @@ class AIPlayer:
         RETURNS:
         The 0 based index of the column that represents the next move
         """
-        moves = get_valid_moves(board)
-        best_move = np.random.choice(moves)
+        ##moves = get_valid_moves(board)
+        ##best_move = np.random.choice(moves)
 
         #YOUR ALPHA-BETA CODE GOES HERE
 
+
+        def minimax(board, depth, alpha, beta, maximizingPlayer):
+            valid_moves = get_valid_moves(board)
+            is_terminal = is_winning_state(board, self.player_number) or is_winning_state(board, self.other_player_number) or len(valid_moves) == 0
+            if depth == 0 or is_terminal:
+                if is_terminal:
+                    if is_winning_state(board, self.player_number):
+                        return (None, 100000000000000)
+                    elif is_winning_state(board, self.other_player_number):
+                        return (None, -10000000000000)
+                    else: # Game is over, no more valid moves
+                        return (None, 0)
+                else: # Depth is zero
+                    return (None, self.evaluation_function(board))
+            if maximizingPlayer:
+                value = -math.inf
+                column = random.choice(valid_moves)
+                for col in valid_moves:
+                    b_copy = board.copy()
+                    make_move(b_copy, col, self.player_number)
+                    new_score = minimax(b_copy, depth-1, alpha, beta, False)[1]
+                    if new_score > value:
+                        value = new_score
+                        column = col
+                    alpha = max(alpha, value)
+                    if alpha >= beta:
+                        break
+                return column, value
+            else: # Minimizing player
+                value = math.inf
+                column = random.choice(valid_moves)
+                for col in valid_moves:
+                    b_copy = board.copy()
+                    make_move(b_copy, col, self.other_player_number)
+                    new_score = minimax(b_copy, depth-1, alpha, beta, True)[1]
+                    if new_score < value:
+                        value = new_score
+                        column = col
+                    beta = min(beta, value)
+                    if alpha >= beta:
+                        break
+                return column, value
+
+        best_move = minimax(board, self.depth_limit, -math.inf, math.inf, True)[0]
         return best_move
 
 
@@ -135,8 +181,49 @@ class AIPlayer:
 
         #YOUR EVALUATION FUNCTION GOES HERE
 
-        return 0
+        score = 0
+        center_col = [row[len(row)//2] for row in board]
+        center_count = center_col.count(self.player_number)
+        score += center_count * 3  # Center column preference
 
+        # Check all rows, columns, and diagonals for potential connect-4
+        for row in board:
+            for i in range(len(row) - 3):
+                window = row[i:i+4]
+                score += self.assign_score(window)
+
+        # Check vertical locations for connect-4
+        for c in range(len(board[0])):
+            col_array = [row[c] for row in board]
+            for r in range(len(board) - 3):
+                window = col_array[r:r+4]
+                score += self.assign_score(window)
+
+        # Check positively sloped diagonals
+        for r in range(len(board) - 3):
+            for c in range(len(board[0]) - 3):
+                window = [board[r+i][c+i] for i in range(4)]
+                score += self.assign_score(window)
+
+        # Check negatively sloped diagonals
+        for r in range(len(board) - 3):
+            for c in range(len(board[0]) - 3):
+                window = [board[r+3-i][c+i] for i in range(4)]
+                score += self.assign_score(window)
+
+        return score
+
+    def assign_score(self, window):
+        score = 0
+        if np.count_nonzero(window == self.player_number) == 4:
+            score += 100 ##Winning should trump every other option
+        elif np.count_nonzero(window == self.player_number) == 3 and np.count_nonzero(window == 0) == 1:
+            score += 5
+        elif np.count_nonzero(window == self.player_number) == 2 and np.count_nonzero(window == 0) == 2:
+            score += 2
+        if np.count_nonzero(window == self.other_player_number) == 3 and np.count_nonzero(window == 0) == 1:
+            score -= 4  # Block opponent's three-in-a-row
+        return score
 
 class RandomPlayer:
     def __init__(self, player_number):
@@ -345,6 +432,7 @@ class MCTSNode:
         #    This should look like: self.parent.back(result)
         # Tip: you need to negate the result to account for the fact that the other player
         #    is the actor in the parent node, and so the scores will be from the opposite perspective
+        return None
 
     def back(self, score):
         #This updates the stats for this node, then backpropagates things 
@@ -391,14 +479,14 @@ def is_winning_state(board, player_num):
         for op in [None, np.fliplr]:
             op_board = op(b) if op else b
             
-            root_diag = np.diagonal(op_board, offset=0).astype(np.int)
+            root_diag = np.diagonal(op_board, offset=0).astype(int)
             if player_win_str in to_str(root_diag):
                 return True
 
             for i in range(1, b.shape[1]-3):
                 for offset in [i, -i]:
                     diag = np.diagonal(op_board, offset=offset)
-                    diag = to_str(diag.astype(np.int))
+                    diag = to_str(diag.astype(int))
                     if player_win_str in diag:
                         return True
 

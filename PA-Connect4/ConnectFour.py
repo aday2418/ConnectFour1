@@ -168,11 +168,11 @@ class Game:
         for r in range(0,self.board.shape[0]):
             for c in range(0, self.board.shape[1]):
                 if self.board[r,c] == 0:
-                    print(' . ', end="")
+                    print(' . ', end = "")
                 elif self.board[r,c] == 1:
-                    print(' X ', end="")
+                    print(' X ', end = "")
                 elif self.board[r,c] == 2:
-                    print(' O ', end="")
+                    print(' O ', end = "")
             print(' ')
 
         #Display the column names as well
@@ -206,14 +206,14 @@ class Game:
             for op in [None, np.fliplr]:
                 op_board = op(b) if op else b
                 
-                root_diag = np.diagonal(op_board, offset=0).astype(np.int)
+                root_diag = np.diagonal(op_board, offset=0).astype(int)
                 if player_win_str in to_str(root_diag):
                     return True
 
                 for i in range(1, b.shape[1]-3):
                     for offset in [i, -i]:
                         diag = np.diagonal(op_board, offset=offset)
-                        diag = to_str(diag.astype(np.int))
+                        diag = to_str(diag.astype(int))
                         if player_win_str in diag:
                             return True
 
