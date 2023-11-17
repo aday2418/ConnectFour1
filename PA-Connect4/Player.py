@@ -160,7 +160,7 @@ class AIPlayer:
         return best_move
 
 
-    def evaluation_function(self, board):
+    ##def evaluation_function(self, board):
         """
         Given the current stat of the board, return the scalar value that 
         represents the evaluation function for the current player
@@ -178,7 +178,7 @@ class AIPlayer:
         RETURNS:
         The utility value for the current board
         """
-
+        """
         #YOUR EVALUATION FUNCTION GOES HERE
 
         score = 0
@@ -223,6 +223,67 @@ class AIPlayer:
             score += 2
         if np.count_nonzero(window == self.other_player_number) == 3 and np.count_nonzero(window == 0) == 1:
             score -= 4  # Block opponent's three-in-a-row
+        ##elif np.count_nonzero(window == self.other_player_number) == 2 and np.count_nonzero(window == 0) == 2:
+            ##score -= 1  
+        return score"""
+    def evaluation_function(self, board):
+        score = 0
+
+        # Center column preference
+        center_array = [int(i) for i in list(board[:, len(board[0]) // 2])]
+        center_count = center_array.count(self.player_number)
+        score += center_count * 10
+
+        # Score positions
+        score += self.score_board(board, self.player_number)
+        score -= self.score_board(board, self.other_player_number)
+
+        return score
+
+    def score_board(self, board, player_number):
+        score = 0
+
+        # Score horizontal
+        for row in range(len(board)):
+            row_array = [int(i) for i in list(board[row, :])]
+            for col in range(len(board[0]) - 3):
+                window = row_array[col:col + 4]
+                score += self.evaluate_window(window, player_number)
+
+        # Score vertical
+        for col in range(len(board[0])):
+            col_array = [int(i) for i in list(board[:, col])]
+            for row in range(len(board) - 3):
+                window = col_array[row:row + 4]
+                score += self.evaluate_window(window, player_number)
+
+        # Score positive diagonal
+        for row in range(len(board) - 3):
+            for col in range(len(board[0]) - 3):
+                window = [board[row + i][col + i] for i in range(4)]
+                score += self.evaluate_window(window, player_number)
+
+        # Score negative diagonal
+        for row in range(len(board) - 3):
+            for col in range(len(board[0]) - 3):
+                window = [board[row + 3 - i][col + i] for i in range(4)]
+                score += self.evaluate_window(window, player_number)
+
+        return score
+
+    def evaluate_window(self, window, player_number):
+        score = 0
+        opp_number = self.other_player_number
+
+        if window.count(player_number) == 4:
+            score += 100000
+        elif window.count(player_number) == 3 and window.count(0) == 1:
+            score += 100
+        elif window.count(player_number) == 2 and window.count(0) == 2:
+            score += 10
+        if window.count(opp_number) == 3 and window.count(0) == 1:
+            score -= 80
+
         return score
 
 class RandomPlayer:
