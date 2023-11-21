@@ -59,7 +59,6 @@ class AIPlayer:
 
         #YOUR ALPHA-BETA CODE GOES HERE
 
-
         def minimax(board, depth, alpha, beta, maximizingPlayer):
             valid_moves = get_valid_moves(board)
             is_terminal = is_winning_state(board, self.player_number) or is_winning_state(board, self.other_player_number) or len(valid_moves) == 0
@@ -152,15 +151,56 @@ class AIPlayer:
         RETURNS:
         The 0 based index of the column that represents the next move
         """
-        moves = get_valid_moves(board)
-        best_move = np.random.choice(moves)
+        ##moves = get_valid_moves(board)
+        ##best_move = np.random.choice(moves)
         
         #YOUR EXPECTIMAX CODE GOES HERE
 
+        for move in get_valid_moves(board): #Looking for an auto win (3 in a row)
+            board_copy = board.copy()
+            make_move(board_copy, move, self.player_number)
+            if is_winning_state(board_copy, self.player_number):
+                return move  # Return this move immediately
+
+        moves = get_valid_moves(board)
+        best_move = None
+        best_score = -float('inf')
+
+        for move in moves:
+            # Make a copy of the board and apply the move
+            board_copy = board.copy()
+            make_move(board_copy, move, self.player_number)
+            # Call the recursive expectimax function
+            score = self.expectimax(board_copy, self.depth_limit, False)
+            if score > best_score:
+                best_score = score
+                best_move = move
+
         return best_move
+    
+    def expectimax(self, board, depth, isMaximizingPlayer):
+        if depth == 0 or is_winning_state(board, self.player_number) or is_winning_state(board, self.other_player_number):
+            return self.evaluation_function(board)
 
+        if isMaximizingPlayer:
+            best_score = -float('inf')
+            for move in get_valid_moves(board):
+                board_copy = board.copy()
+                make_move(board_copy, move, self.player_number)
+                score = self.expectimax(board_copy, depth-1, False)
+                best_score = max(best_score, score)
+            return best_score
+        else:  # Chance node
+            total_score = 0
+            valid_moves = get_valid_moves(board)
+            for move in valid_moves:
+                board_copy = board.copy()
+                make_move(board_copy, move, self.other_player_number)
+                score = self.expectimax(board_copy, depth-1, True)
+                total_score += score
+            return total_score / len(valid_moves)  # Average score of all possible moves
 
-    ##def evaluation_function(self, board):
+    def evaluation_function(self, board):
         """
         Given the current stat of the board, return the scalar value that 
         represents the evaluation function for the current player
@@ -178,9 +218,9 @@ class AIPlayer:
         RETURNS:
         The utility value for the current board
         """
-        """
-        #YOUR EVALUATION FUNCTION GOES HERE
 
+        #YOUR EVALUATION FUNCTION GOES HERE
+            
         score = 0
         center_col = [row[len(row)//2] for row in board]
         center_count = center_col.count(self.player_number)
@@ -210,7 +250,7 @@ class AIPlayer:
             for c in range(len(board[0]) - 3):
                 window = [board[r+3-i][c+i] for i in range(4)]
                 score += self.assign_score(window)
-
+        
         return score
 
     def assign_score(self, window):
@@ -223,67 +263,6 @@ class AIPlayer:
             score += 2
         if np.count_nonzero(window == self.other_player_number) == 3 and np.count_nonzero(window == 0) == 1:
             score -= 4  # Block opponent's three-in-a-row
-        ##elif np.count_nonzero(window == self.other_player_number) == 2 and np.count_nonzero(window == 0) == 2:
-            ##score -= 1  
-        return score"""
-    def evaluation_function(self, board):
-        score = 0
-
-        # Center column preference
-        center_array = [int(i) for i in list(board[:, len(board[0]) // 2])]
-        center_count = center_array.count(self.player_number)
-        score += center_count * 10
-
-        # Score positions
-        score += self.score_board(board, self.player_number)
-        score -= self.score_board(board, self.other_player_number)
-
-        return score
-
-    def score_board(self, board, player_number):
-        score = 0
-
-        # Score horizontal
-        for row in range(len(board)):
-            row_array = [int(i) for i in list(board[row, :])]
-            for col in range(len(board[0]) - 3):
-                window = row_array[col:col + 4]
-                score += self.evaluate_window(window, player_number)
-
-        # Score vertical
-        for col in range(len(board[0])):
-            col_array = [int(i) for i in list(board[:, col])]
-            for row in range(len(board) - 3):
-                window = col_array[row:row + 4]
-                score += self.evaluate_window(window, player_number)
-
-        # Score positive diagonal
-        for row in range(len(board) - 3):
-            for col in range(len(board[0]) - 3):
-                window = [board[row + i][col + i] for i in range(4)]
-                score += self.evaluate_window(window, player_number)
-
-        # Score negative diagonal
-        for row in range(len(board) - 3):
-            for col in range(len(board[0]) - 3):
-                window = [board[row + 3 - i][col + i] for i in range(4)]
-                score += self.evaluate_window(window, player_number)
-
-        return score
-
-    def evaluate_window(self, window, player_number):
-        score = 0
-        opp_number = self.other_player_number
-
-        if window.count(player_number) == 4:
-            score += 100000
-        elif window.count(player_number) == 3 and window.count(0) == 1:
-            score += 100
-        elif window.count(player_number) == 2 and window.count(0) == 2:
-            score += 10
-        if window.count(opp_number) == 3 and window.count(0) == 1:
-            score -= 80
-
         return score
 
 class RandomPlayer:
